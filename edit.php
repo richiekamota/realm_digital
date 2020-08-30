@@ -1,114 +1,288 @@
 <?php
 
 include_once("database.php");
+
  
-if(isset($_POST['update']))
+if(isset($_POST['submit']))
 {    
+
     $id = $_POST['id'];
+    $firstname = $_POST['name']['firstname'];
+    $lastname = $_POST['name']['lastname'];
+    $phone = $_POST['phone'];
+    $email = $_POST['email'];
+    $phone0 = $phone[0];
+    $phone1 = $phone[1];
+    $phone2 = $phone[2];
+    $email0 = $email[0];
+    $email1 = $email[1];
+    $email2 = $email[2];
+    $pid = [];
+    $eid = [];
+    $tmpArray = [];
+
+    echo $id;
+      
+//exit;
+     //print($phone.','.$phone1.','.$phone2.','.$email0.','.$email1.','.$email2.','.$id);
+    $ppIdQuery = mysqli_query($connection, "SELECT id FROM phone WHERE contacts_id = $id");
+        
+    while($pidres = mysqli_fetch_array($ppIdQuery)) {                   
+            $key = $pidres[0]; 
+            $pid[] = $key;         
+    }
+
+    $epIdQuery = mysqli_query($connection, "SELECT id FROM email WHERE contacts_id = $id");
     
-    $firstname=$_POST['firstname'];
-    $lastname=$_POST['lastname'];
-    $phone=$_POST['phone'];
-    $email=$_POST['email'];    
+    while($eidres = mysqli_fetch_array($epIdQuery)) {                   
+            $key = $eidres[0]; 
+            $eid[] = $key;         
+    }     
     
-   //print($firstname .$lastname .$phone .$email);
-    if(empty($firstname) ||empty($lastname) || empty($phone) || empty($email)) {            
+    if(empty($firstname) || empty($lastname) || ($email0 == NULL) && ($email1 == NULL) && ($email2 == NULL) || ($phone0 == NULL) && ($phone1 == NULL) && ($phone2 == NULL)) {                
+         
         if(empty($firstname)) {
             echo "<font color='red'>First name field is empty.</font><br/>";
         }
 
         if(empty($lastname)) {
+
             echo "<font color='red'>Last name field is empty.</font><br/>";
         }
         
-        if(empty($phone)) {
-            echo "<font color='red'>Phone field is empty.</font><br/>";
+        if(($phone0 == NULL) && ($phone1 == NULL) && ($phone2 == NULL)) {
+
+            echo "<font color='red'>Phone field is empty. Please fill out at least one phone field</font><br/>";
         }
         
-        if(empty($email)) {
-            echo "<font color='red'>Email field is empty.</font><br/>";
+        if(($email0 == NULL) && ($email1 == NULL) && ($email2 == NULL)) {
+
+            echo "<font color='red'>Email field is empty. Please fill at least one email field</font><br/>";
         }        
-    } else {    
         
-        $result = mysqli_query($connection, "UPDATE contacts SET firstname='$firstname',lastname='$lastname',phone='$phone',email='$email' WHERE id=$id");
+            echo "<br/><a href='javascript:self.history.back();'>Go Back</a>";
+
+     } else { 
+       
+        //TODO: Find out about transcations and how could they be used to handle the below code clutter. Find out about the last_insert_id usage
+
         
-        header("Location: index.php");
+        $sql1 = mysqli_query($connection, "UPDATE contacts SET firstname='$firstname',lastname='$lastname' WHERE id= '$id';");        
+
+            if (!mysqli_query($connection, $sql1)) {
+               echo "Error: " . $sql1 . ":" . mysqli_error($connection).'<br/>';           
+            }
+
+            $ppIdQuery = mysqli_query($connection, "SELECT id FROM phone WHERE contacts_id = $id");
+        
+            while($pidres = mysqli_fetch_array($ppIdQuery)) {                   
+                    $pkey = $pidres[0]; 
+                    $pid[] = $pkey;         
+            }
+        
+            $epIdQuery = mysqli_query($connection, "SELECT id FROM email WHERE contacts_id = $id");
+            
+            while($eidres = mysqli_fetch_array($epIdQuery)) {                   
+                    $ekey = $eidres[0]; 
+                    $eid[] = $ekey;         
+            }     
+
+        for($i=0; $i <= count($phone)-1; $i++){
+
+            for($k=0; $k <= count($email)-1; $k++){
+                $sqlp = mysqli_query($connection, "INSERT INTO temp_details(contacts_id,firstname,lastname,phone,email) VALUES('$id','$firstname','$lastname','$phone[$i]','$email[$k]');");        
+                if (!mysqli_query($connection, $sqlp)) {
+                    echo "Error: " . $sqlp . ":" . mysqli_error($connection).'<br/>';           
+                }
+            }        
+        } 
+        
+        $getFromTemp = mysqli_query($connection, "SELECT GROUP_CONCAT(DISTINCT td.contacts_id) as id,GROUP_CONCAT(DISTINCT td.firstname) as name,GROUP_CONCAT(DISTINCT td.lastname) as surname, GROUP_CONCAT(DISTINCT td.phone ORDER BY td.phone DESC SEPARATOR '<br/>') as phone, GROUP_CONCAT(DISTINCT td.email ORDER BY td.email DESC SEPARATOR '<br/>') as email FROM temp_details AS td                                              
+                    WHERE td.contacts_id=$id"); 
+
+        while($tempres = mysqli_fetch_array($getFromTemp)){
+            $key = $tempres['id'];   
+            $tmp[$key] = $tempres;            
+        } 
+
+        $tmpphone = explode('<br/>',$tmp[$key]['phone']);
+        $tmpemail = explode('<br/>',$tmp[$key]['email']);
+        
+
+        $sqlp = mysqli_query($connection, "UPDATE phone as p
+        SET phone ='$tmpphone[0]' WHERE p.id = '$pid[0]' AND p.contacts_id='$id';");        
+        
+        $sqlp .= mysqli_query($connection, "UPDATE phone as p
+        SET phone ='$tmpphone[1]' WHERE p.id = '$pid[1]' AND p.contacts_id='$id';");        
+
+        $sqlp .= mysqli_query($connection, "UPDATE phone as p
+        SET phone ='$tmpphone[2]' WHERE p.id = '$pid[2]' AND p.contacts_id='$id';");                                
+        
+        if (!mysqli_multi_query($connection, $sqlp)) {
+            echo "Error: " . $sqlp . ":" . mysqli_error($connection).'<br/>'; 
+        }
+
+        $sqle = mysqli_query($connection, "UPDATE email as e
+        SET email ='$tmpemail[0]' WHERE e.id = '$eid[0]' AND e.contacts_id='$id';");
+
+        $sqle .= mysqli_query($connection, "UPDATE email as e
+        SET email ='$tmpemail[1]' WHERE e.id = '$eid[1]' AND e.contacts_id='$id';");
+
+        $sqle .= mysqli_query($connection, "UPDATE email as e
+        SET email ='$tmpemail[2]' WHERE e.id = '$eid[2]' AND e.contacts_id='$id';");
+
+        if (!mysqli_multi_query($connection, $sqle)) {
+            echo "Error: " . $sqle . ":" . mysqli_error($connection).'<br/>'; 
+        }  
+        
+        $clearsql = mysqli_query($connection, "DELETE FROM temp_details WHERE contacts_id='$id';");        
+                       
+                        if (!mysqli_query($connection, $clearsql)) {
+                          echo "Error: " . $clearsql . ":" . mysqli_error($connection).'<br/>';
+                        }
+        
+        header("Location: index.php?edit_id=$id");
     }
+    mysqli_close($connection); 
+
 }
 ?>
 <?php
 
 if(isset($_GET['id']) && !empty(trim($_GET["id"]))){
-        // Get URL parameter
-$id =  trim($_GET['id']);
+        
+ $id =  trim($_GET['id']);
 
-$result = mysqli_query($connection, "SELECT * FROM contacts WHERE id=$id");
- 
-	while($res = mysqli_fetch_array($result))
-	{
-	    $firstname = $res['firstname'];
-	    $lastname = $res['lastname'];
-	    $phone = $res['phone'];
-	    $email = $res['email'];
-	}
-}
+ $result = mysqli_query($connection, "SELECT c.id, c.firstname, c.lastname, GROUP_CONCAT(DISTINCT p.phone ORDER BY p.phone DESC SEPARATOR '<br/>') as phone, GROUP_CONCAT(DISTINCT e.email ORDER BY e.email DESC SEPARATOR '<br/>') as email FROM contacts AS c
+    LEFT OUTER JOIN phone AS p ON p.contacts_id = c.id 
+    LEFT OUTER JOIN email AS e ON e.contacts_id = c.id                                              
+    WHERE c.id=$id GROUP BY c.id ASC");
+        
+}  
+                      
 ?>
 
 <!DOCTYPE html>
 <html>
 	<head>
       <meta charset="utf-8"> 
-      <meta name="viewport" content="width=device-width, initial-scale=1">     
-      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-      <link href='https://fonts.google.com/specimen/Montserrat' rel='stylesheet' type='text/css'>
-      <link href='https://fonts.google.com/specimen/Roboto' rel='stylesheet' type='text/css'>
+        <style>
+            .editform-div {
+                display:block;
+                text-align:center;
+            }
+
+            .label {
+                font-size:18px;
+            }
+
+            input[type=text] {
+                border: 1px solid black;
+                border-radius: 4px;
+                padding-left:20px; 
+                font-size:18px;        
+                line-height: 2;
+                margin-bottom: 10px;
+            }
+
+            input[type=email] {
+                border: 1px solid black;
+                border-radius: 4px;
+                padding-left:20px;
+                font-size:18px;
+                line-height: 2;
+                margin-bottom: 10px;
+            }
+
+            input:focus,input:hover { 
+                outline: none !important;
+                border-color: #719ECE;
+                box-shadow: 0 0 10px #719ECE;
+            }
+
+            table.center {
+                margin-left:auto;
+                margin-right:auto;
+            }
+
+            .createuser-button:hover {
+               background-color: #008CBA;
+               color: white;
+            }
+
+            .createuser-button {
+                transition-duration: 0.4s;
+                background: #0d98ba;
+                border: 1px solid #0d98bb;
+                border-radius: 4px;
+                color:white;
+                font-size: 16px;
+                line-height: 2;
+                width: 100%;
+            }
+        </style>
     </head>
-
     <body>
+        <a href="index.php" class="">Home</a><br/><br/>
+	    <div>	                            
+	        <div class="editform-div">
+            <h1>Edit Contact</h1>
+                <form class="form-home" method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
+                    <input type="hidden" name="id" value="<?php echo $id; ?>"/>				
 
-        <a href="index.php" class="btn btn-outline-primary">Home</a><br/><br/>
+                    <table class="center">
+                    
+                        <?php while($res = mysqli_fetch_array($result)) {?>                    
+                            <tr>
+                                <td class="label" align="right">First Name:</td>
+                                <td align="left"><input type="text" name="name[firstname]" size="30" value="<?php echo $res['firstname']; ?>"> </td>
+                            </tr>
+                            <tr>
+                                <td class="label" align="right">Last Name:</td>
+                                <td align="left"><input type="text" name="name[lastname]" size="30" value="<?php echo $res['lastname']; ?>"></td>
+                            </tr>                
+                            <?php $phone = explode('<br/>',$res['phone']);?>                                                  
+                                <tr>
+                                    <td class="label" align="right">Phone 1:</td>
+                                    <td align="left"><input name="phone[0]" type="text" size="30" value="<?php echo $phone[0];?>"></td>
+                                </tr>  
+                                <tr>
+                                    <td class="label" align="right">Phone 2:</td>
+                                    <td align="left"><input name="phone[1]" type="text" size="30" value="<?php echo $phone[1];?>"></td>
+                                </tr>            
+                                <tr>
+                                    <td class="label" align="right">Phone 3:</td>
+                                    <td align="left"><input name="phone[2]" type="text" size="30" value="<?php echo $phone[2];?>"></td>
+                                </tr>   
 
-	    <div class="container justify-content-center d-flex">
-	                            
-	        <div class="justify-content-center align-items-center d-flex">
-
-	            <form class="form-horizontal" method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>" autocomplete="off">
-	                <input type="hidden" name="id" value="<?php echo $id; ?>"/>			
-
-	                <div class="form-group row mt-4">
-	                    <div class="col-md-12">
-	                        <input class="form-control" type="text" name="firstname" value="<?php echo $firstname;?>">
-	                    </div>
-	                </div>
-	                 <div class="form-group row mt-4">
-	                    <div class="col-md-12">
-	                        <input class="form-control" type="text" name="lastname" value="<?php echo $lastname;?>">
-	                    </div>
-	                </div>
-	                <div class="form-group row">
-	                    <div class="col-md-12">
-	                        <input class="form-control" name="phone" type="text" value="<?php echo $phone;?>">
-	                    </div>
-	                </div>
-	                <div class="form-group row">
-	                    <div class="col-md-12">
-	                        <input class="form-control" name="email" type="email" value="<?php echo $email;?>">
-	                    </div>
-	                </div>
-	                <div class="form-group row text-center mt-4">
-	                    <div class="col-md-12">
-	                        <button class="btn btn-info" name="update" type="submit">Update User</button>
-	                    </div>
-	                </div>
-	            </form>
+                                <?php $email = explode('<br/>',$res['email']);?>               
+                            
+                                <tr>
+                                    <td class="label" align="right">Email 1:</td>
+                                    <td align="left"><input name="email[0]" type="email" size="30" value="<?php echo $email[0]; ?>"></td>
+                                </tr> 
+                                <tr>
+                                    <td class="label" align="right">Email 2:</td>
+                                    <td align="left"><input name="email[1]" type="email" size="30" value="<?php echo $email[1];  ?>"></td>
+                                </tr>
+                                <tr>
+                                    <td class="label" align="right">Email 3:</td>
+                                    <td align="left"><input name="email[2]" type="email" size="30" value="<?php echo $email[2];  ?>"></td>
+                                </tr> 
+                           
+                        <?php }?>   
+                                          
+                        <tr>                        
+                            <td align="right"></td>
+                            <td align="left"><button class="createuser-button" name="submit" type="submit">Edit Contact</button></td>                   
+                        </tr>                           
+                    </table>                 
+                </form>
 	        </div>    
         </div>
-	 <!-- Bootstrap core JavaScript
-	    ================================================== -->
-	    <!-- Placed at the end of the document so the pages load faster -->
-	    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-	    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-	    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+	 
+	    <script type="text/javascript"></script>
+	    
     </body>
 </html>
 

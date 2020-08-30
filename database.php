@@ -1,8 +1,8 @@
 <?php
 $localhost = 'localhost';
-$user = 'root';
-$password = '';
-$database = 'realm_digital';
+$user = 'contactsuser';
+$password = 'tapiwa';
+$database = 'contactsApp';
  
 $connection = mysqli_connect($localhost, $user, $password, $database); 
 
