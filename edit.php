@@ -23,8 +23,6 @@ if(isset($_POST['submit']))
 
     echo $id;
       
-//exit;
-     //print($phone.','.$phone1.','.$phone2.','.$email0.','.$email1.','.$email2.','.$id);
     $ppIdQuery = mysqli_query($connection, "SELECT id FROM phone WHERE contacts_id = $id");
         
     while($pidres = mysqli_fetch_array($ppIdQuery)) {                   
@@ -62,10 +60,7 @@ if(isset($_POST['submit']))
         
             echo "<br/><a href='javascript:self.history.back();'>Go Back</a>";
 
-     } else { 
-       
-        //TODO: Find out about transcations and how could they be used to handle the below code clutter. Find out about the last_insert_id usage
-
+     } else {
         
         $sql1 = mysqli_query($connection, "UPDATE contacts SET firstname='$firstname',lastname='$lastname' WHERE id= '$id';");        
 
@@ -87,60 +82,33 @@ if(isset($_POST['submit']))
                     $eid[] = $ekey;         
             }     
 
-        for($i=0; $i <= count($phone)-1; $i++){
-
-            for($k=0; $k <= count($email)-1; $k++){
-                $sqlp = mysqli_query($connection, "INSERT INTO temp_details(contacts_id,firstname,lastname,phone,email) VALUES('$id','$firstname','$lastname','$phone[$i]','$email[$k]');");        
-                if (!mysqli_query($connection, $sqlp)) {
-                    echo "Error: " . $sqlp . ":" . mysqli_error($connection).'<br/>';           
-                }
-            }        
-        } 
-        
-        $getFromTemp = mysqli_query($connection, "SELECT GROUP_CONCAT(DISTINCT td.contacts_id) as id,GROUP_CONCAT(DISTINCT td.firstname) as name,GROUP_CONCAT(DISTINCT td.lastname) as surname, GROUP_CONCAT(DISTINCT td.phone ORDER BY td.phone DESC SEPARATOR '<br/>') as phone, GROUP_CONCAT(DISTINCT td.email ORDER BY td.email DESC SEPARATOR '<br/>') as email FROM temp_details AS td                                              
-                    WHERE td.contacts_id=$id"); 
-
-        while($tempres = mysqli_fetch_array($getFromTemp)){
-            $key = $tempres['id'];   
-            $tmp[$key] = $tempres;            
-        } 
-
-        $tmpphone = explode('<br/>',$tmp[$key]['phone']);
-        $tmpemail = explode('<br/>',$tmp[$key]['email']);
-        
-
         $sqlp = mysqli_query($connection, "UPDATE phone as p
-        SET phone ='$tmpphone[0]' WHERE p.id = '$pid[0]' AND p.contacts_id='$id';");        
+        SET phone ='$phone0' WHERE p.id = '$pid[0]' AND p.contacts_id='$id';");        
         
         $sqlp .= mysqli_query($connection, "UPDATE phone as p
-        SET phone ='$tmpphone[1]' WHERE p.id = '$pid[1]' AND p.contacts_id='$id';");        
+        SET phone ='$phone1' WHERE p.id = '$pid[1]' AND p.contacts_id='$id';");        
 
         $sqlp .= mysqli_query($connection, "UPDATE phone as p
-        SET phone ='$tmpphone[2]' WHERE p.id = '$pid[2]' AND p.contacts_id='$id';");                                
+        SET phone ='$phone2' WHERE p.id = '$pid[2]' AND p.contacts_id='$id';");                                
         
         if (!mysqli_multi_query($connection, $sqlp)) {
             echo "Error: " . $sqlp . ":" . mysqli_error($connection).'<br/>'; 
         }
 
         $sqle = mysqli_query($connection, "UPDATE email as e
-        SET email ='$tmpemail[0]' WHERE e.id = '$eid[0]' AND e.contacts_id='$id';");
+        SET email ='$email0' WHERE e.id = '$eid[0]' AND e.contacts_id='$id';");
 
         $sqle .= mysqli_query($connection, "UPDATE email as e
-        SET email ='$tmpemail[1]' WHERE e.id = '$eid[1]' AND e.contacts_id='$id';");
+        SET email ='$email1' WHERE e.id = '$eid[1]' AND e.contacts_id='$id';");
 
         $sqle .= mysqli_query($connection, "UPDATE email as e
-        SET email ='$tmpemail[2]' WHERE e.id = '$eid[2]' AND e.contacts_id='$id';");
+        SET email ='$email2' WHERE e.id = '$eid[2]' AND e.contacts_id='$id';");
 
         if (!mysqli_multi_query($connection, $sqle)) {
             echo "Error: " . $sqle . ":" . mysqli_error($connection).'<br/>'; 
         }  
         
-        $clearsql = mysqli_query($connection, "DELETE FROM temp_details WHERE contacts_id='$id';");        
-                       
-                        if (!mysqli_query($connection, $clearsql)) {
-                          echo "Error: " . $clearsql . ":" . mysqli_error($connection).'<br/>';
-                        }
-        
+            
         header("Location: index.php?edit_id=$id");
     }
     mysqli_close($connection); 

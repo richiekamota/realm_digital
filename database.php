@@ -1,7 +1,7 @@
 <?php
 $localhost = 'localhost';
-$user = 'contactsuser';
-$password = 'tapiwa';
+$user = 'root';
+$password = 'admin';
 $database = 'contactsApp';
  
 $connection = mysqli_connect($localhost, $user, $password, $database); 

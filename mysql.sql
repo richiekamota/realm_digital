@@ -2,9 +2,9 @@ DROP DATABASE IF EXISTS contactsApp;
 
 CREATE DATABASE contactsApp;
 
-CREATE USER 'contactsuser'@'localhost' IDENTIFIED BY 'tapiwa';
+CREATE USER 'root'@'localhost' IDENTIFIED BY 'admin';
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON contactsApp.* TO contactsuser@'localhost' IDENTIFIED BY 'tapiwa';
+GRANT SELECT, INSERT, UPDATE, DELETE ON contactsApp.* TO root@'localhost' IDENTIFIED BY 'admin';
 
 USE contactsApp;
 
